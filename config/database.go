@@ -17,7 +17,8 @@ func NewDatabase(databaseURL string, isProduction bool) *gorm.DB {
 		logLevel = logger.Warn
 	}
 
-	db, err := gorm.Open(postgres.Open(databaseURL), &gorm.Config{
+	// db, err := gorm.Open(postgres.Open(databaseURL), &gorm.Config{
+	db, err := gorm.Open(postgres.Open(databaseURL+"?sslmode=require"), &gorm.Config{
 		Logger: logger.Default.LogMode(logLevel),
 	})
 	if err != nil {
