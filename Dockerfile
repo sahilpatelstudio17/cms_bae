@@ -5,8 +5,7 @@ WORKDIR /app
 COPY . .
 
 RUN go mod tidy
-
-RUN go build -o app ./cmd/api   # 👈 IMPORTANT FIX
+RUN go build -o app ./cmd/api
 
 EXPOSE 8080
 
