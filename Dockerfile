@@ -1,4 +1,6 @@
-FROM golang:1.24-alpine AS builder
+# syntax=docker/dockerfile:1
+
+FROM --platform=$BUILDPLATFORM golang:1.24-alpine AS builder
 
 WORKDIR /app
 
@@ -7,16 +9,21 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o app ./cmd/server
+ARG TARGETOS
+ARG TARGETARCH
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o app ./cmd/server
 
 FROM alpine:3.20
 
 WORKDIR /app
 
-COPY --from=builder /app/app ./app
+COPY --from=builder /app/app /usr/local/bin/cms-server
+
+RUN chmod +x /usr/local/bin/cms-server
 
 ENV APP_ENV=production
+ENV PORT=8080
 
 EXPOSE 8080
 
-CMD ["/app/app"]
+ENTRYPOINT ["/usr/local/bin/cms-server"]
