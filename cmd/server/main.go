@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"os"
 
 	"cms/config"
 	"cms/internal/controllers"
@@ -81,18 +80,8 @@ func main() {
 		JWTSecret:                cfg.JWTSecret,
 	})
 
-	// ✅ IMPORTANT FIX (Railway port)
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = cfg.Port
-	}
-	if port == "" {
-		port = "8080"
-	}
-
-	log.Println("🚀 Server running on port:", port)
-
-	if err := router.Run(":" + port); err != nil {
-		log.Fatalf("❌ failed to run server: %v", err)
+	log.Printf("server running on :%s", cfg.Port)
+	if err := router.Run(":" + cfg.Port); err != nil {
+		log.Fatalf("failed to run server: %v", err)
 	}
 }

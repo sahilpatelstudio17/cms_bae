@@ -17,41 +17,27 @@ func NewDatabase(databaseURL string, isProduction bool) *gorm.DB {
 		logLevel = logger.Warn
 	}
 
-	// ✅ Debug log
-	log.Println("🚀 Connecting to database...")
-
-	// ✅ SSL FIX (Railway required)
-	db, err := gorm.Open(postgres.Open(databaseURL+"?sslmode=require"), &gorm.Config{
+	db, err := gorm.Open(postgres.Open(databaseURL), &gorm.Config{
 		Logger: logger.Default.LogMode(logLevel),
 	})
 	if err != nil {
-		log.Fatalf("❌ failed to connect to database: %v", err)
+		log.Fatalf("failed to connect to database: %v", err)
 	}
 
-	// ✅ Get SQL DB
 	sqlDB, err := db.DB()
 	if err != nil {
-		log.Fatalf("❌ failed to access sql DB: %v", err)
+		log.Fatalf("failed to access sql DB: %v", err)
 	}
 
-	// ✅ Connection pool config
 	sqlDB.SetMaxIdleConns(10)
 	sqlDB.SetMaxOpenConns(100)
 	sqlDB.SetConnMaxLifetime(30 * time.Minute)
 
-	log.Println("✅ Database connected")
+	// Drop table to ensure clean schema without FK constraints
+	// This is needed because previous versions had FK constraints that conflict with company signups
+	db.Migrator().DropTable(&models.ApprovalRequest{})
 
-	// ⚠️ TEMP: Comment this if crash happens
-	log.Println("⚠️ Dropping ApprovalRequest table (if exists)")
-	err = db.Migrator().DropTable(&models.ApprovalRequest{})
-	if err != nil {
-		log.Println("⚠️ DropTable warning:", err)
-	}
-
-	// ✅ Run migrations
-	log.Println("🚀 Running AutoMigrate...")
-
-	err = db.AutoMigrate(
+	if err := db.AutoMigrate(
 		&models.Company{},
 		&models.User{},
 		&models.Employee{},
@@ -61,37 +47,27 @@ func NewDatabase(databaseURL string, isProduction bool) *gorm.DB {
 		&models.ApprovalRequest{},
 		&models.Expense{},
 		&models.Sale{},
-	)
-	if err != nil {
-		log.Fatalf("❌ failed to migrate database: %v", err)
+	); err != nil {
+		log.Fatalf("failed to migrate database: %v", err)
 	}
 
-	log.Println("✅ Migrations completed")
-
-	// ✅ Safe updates (ignore error, no crash)
-	log.Println("🚀 Updating employee roles...")
-
+	// Update existing employees with NULL roles based on their position
+	// This ensures all employees have a role for filtering
 	db.Model(&models.Employee{}).
 		Where("role IS NULL AND position = ?", "Salesman").
 		Update("role", "salesman")
-
 	db.Model(&models.Employee{}).
 		Where("role IS NULL AND position = ?", "Developer").
 		Update("role", "developer")
-
 	db.Model(&models.Employee{}).
 		Where("role IS NULL AND position = ?", "Staff").
 		Update("role", "staff")
-
 	db.Model(&models.Employee{}).
 		Where("role IS NULL AND position = ?", "Manager").
 		Update("role", "manager")
-
 	db.Model(&models.Employee{}).
 		Where("role IS NULL").
 		Update("role", "employee")
-
-	log.Println("✅ Database setup complete")
 
 	return db
 }
