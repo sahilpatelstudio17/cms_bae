@@ -28,7 +28,7 @@ func LoadConfig() AppConfig {
 	}
 
 	cfg := AppConfig{
-		Port:            getEnv("APP_PORT", "8080"),
+		Port:            getEnv("PORT", getEnv("APP_PORT", "8080")),
 		Environment:     getEnv("APP_ENV", "development"),
 		DatabaseURL:     os.Getenv("DATABASE_URL"),
 		JWTSecret:       getEnv("JWT_SECRET", "change-me"),
